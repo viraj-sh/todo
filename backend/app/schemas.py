@@ -22,6 +22,10 @@ class ListCreate(ListBase):
     pass
 
 
+class ListUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=50)
+
+
 class ListSummary(BaseModel):
     id: PydanticObjectId
     name: str = Field(min_length=1, max_length=50)
@@ -42,6 +46,7 @@ class ListItemCreate(BaseModel):
 class ListItemUpdatePartial(BaseModel):
     item_id: str
     checked: bool | None = Field(default=None)
+    # label: str | None = Field(default=None, min_length=1, max_length=50)
 
 
 class ListItemResponse(ListItemBase):

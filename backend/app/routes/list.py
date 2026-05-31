@@ -1,14 +1,15 @@
 from fastapi import APIRouter, status, HTTPException, Query
-from schemas import (
+from app.schemas import (
     ListCreate,
     ListResponse,
     ListDetailedResponse,
     ListItemCreate,
+    ListUpdate,
     ListItemResponse,
     ListItemBase,
     ListItemUpdatePartial,
 )
-from models import TodoList
+from app.models import TodoList
 from beanie import PydanticObjectId
 from typing import Annotated
 
@@ -18,14 +19,6 @@ router = APIRouter()
 @router.get("", status_code=status.HTTP_200_OK)
 async def fetch_todo_lists():
     return await TodoList.list_summaries()
-
-
-# @router.get(
-#     "/full", response_model=list[ListDetailedResponse], status_code=status.HTTP_200_OK
-# )
-# async def fetch_todo_lists_full():
-#     todo_lists = await TodoList.find_all().to_list()
-#     return todo_lists
 
 
 @router.post("", response_model=ListResponse, status_code=status.HTTP_201_CREATED)
@@ -45,6 +38,20 @@ async def fetch_todo_list_details(list_id: PydanticObjectId):
             status_code=status.HTTP_404_NOT_FOUND, detail="todo list not found"
         )
     return list_details
+
+
+@router.patch(
+    "/{list_id}", response_model=ListResponse, status_code=status.HTTP_202_ACCEPTED
+)
+async def update_todo_list(list_id: PydanticObjectId, list_data: ListUpdate):
+    list = await TodoList.get(list_id)
+    if not list:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="list not found"
+        )
+    if list_data.name != None:
+        await list.update({"$set": {"title": list_data.name}})
+    return await TodoList.get(list_id)
 
 
 @router.delete("/{list_id}", status_code=status.HTTP_204_NO_CONTENT)

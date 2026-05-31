@@ -1,6 +1,6 @@
 from beanie import Document
-from schemas import ListItemBase
-from schemas import ListSummary
+from app.schemas import ListItemBase
+from app.schemas import ListSummary
 
 
 class TodoList(Document):

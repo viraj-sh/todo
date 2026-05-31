@@ -1,7 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
-from config import settings
+from app.config import settings
 from beanie import init_beanie
-from models import TodoList
+from app.models import TodoList
 
 client = AsyncIOMotorClient(host=settings.mongo_url.get_secret_value())
 
