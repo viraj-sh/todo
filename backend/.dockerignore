@@ -1,0 +1,12 @@
+__pycache__
+*/__pycache__
+.venv
+.dockerignore
+.env
+.env.example
+.gitignore
+.python-version
+Dockerfile
+pyproject.toml
+README.md
+uv.lock
