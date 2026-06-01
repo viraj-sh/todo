@@ -2,9 +2,6 @@ services:
   todo-backend:
     container_name: todo-backend
     image: todo-backend:latest
-    # build:
-    #   context: ./backend
-    #   dockerfile: ./backend/Dockerfile
     ports:
       - 8888:80
     env_file:
@@ -12,9 +9,6 @@ services:
   todo-frontend:
     container_name: todo-frontend
     image: todo-frontend:latest
-    # build:
-    #   context: ./frontend
-    #   dockerfile: ./frontend/Dockerfile
     ports:
       - 5173:80
     env_file:

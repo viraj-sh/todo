@@ -16,8 +16,8 @@ ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages
 ENV MONGO_URL=
 ENV MONGO_DB=
 
-COPY . .
+COPY /app .
 
-CMD ["fastapi", "run", "app/main.py", "--port", "80"]
+CMD ["fastapi", "run", "main.py", "--port", "80"]
 
 EXPOSE 80
