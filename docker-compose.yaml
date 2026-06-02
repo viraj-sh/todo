@@ -1,15 +1,22 @@
 services:
   todo-backend:
     container_name: todo-backend
-    image: todo-backend:latest
+    image: virajsh/todo-backend:latest
     ports:
       - 8888:80
     env_file:
       - backend/.env
+    # networks:
+    #   - nginx
   todo-frontend:
     container_name: todo-frontend
-    image: todo-frontend:latest
+    image: virajsh/todo-frontend:latest
     ports:
       - 5173:80
     env_file:
       - frontend/.env
+#     networks:
+#       - nginx
+# networks:
+#   nginx:
+#     external: true
