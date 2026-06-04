@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf8")
     # API
     base_url: str
+    cors_origin: str = "https://uitodo.netlify.app"
 
     # Database
     mongo_url: SecretStr

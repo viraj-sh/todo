@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db, close_db
 from app.routes import system, list, user, auth, workspace
+from app.config import settings
 
 
 @asynccontextmanager
@@ -16,12 +17,7 @@ async def lifespan(app_: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-origins = [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5500",
-    "https://uitodo.netlify.app",
-]
+origins = [settings.cors_origin]
 
 app.add_middleware(
     middleware_class=CORSMiddleware,
