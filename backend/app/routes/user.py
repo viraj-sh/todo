@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.get("", response_model=list[UserPublicResponse])
 async def fetch_users():
-    return await User.find_all().to_list()
+    return await User.find_all().sort("+created_at").to_list()
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

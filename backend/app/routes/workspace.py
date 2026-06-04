@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get("", response_model=list[WorkspaceResponse], status_code=status.HTTP_200_OK)
 async def fetch_workspaces(current_user: currentUser):
-    return await Workspace.find(Workspace.user_id == current_user.id).to_list()
+    return await Workspace.find(Workspace.user_id == current_user.id).sort("+created_at").to_list()
 
 
 @router.post("", response_model=WorkspaceResponse, status_code=status.HTTP_201_CREATED)

@@ -1,12 +1,10 @@
-from fastapi import APIRouter, status, HTTPException, Query
+from fastapi import APIRouter, status, HTTPException
 from app.schemas.list import (
     ListCreate,
     ListResponse,
     ListDetailedResponse,
     ItemCreate,
     ListUpdate,
-    ItemResponse,
-    ItemBase,
     ItemUpdatePartial,
 )
 from app.models import List, Workspace
@@ -23,7 +21,7 @@ router = APIRouter()
 async def fetch_lists(workspace_id: PydanticObjectId, current_user: currentUser):
     workspace = await Workspace.find_one(
         Workspace.id == workspace_id, Workspace.user_id == current_user.id
-    )
+    ).sort("+created_at")
     if not workspace:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="workspace not found"
@@ -93,7 +91,7 @@ async def update_lists(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="list not found"
         )
-    if list_data.name != None:
+    if list_data.name is not None:
         await list.update({"$set": {"name": list_data.name}})
     await list.update({"$set": {"updated_at": datetime.now(UTC)}})
     return await List.find_one(List.workspace_id == workspace_id, List.id == list_id)
@@ -180,16 +178,16 @@ async def update_item_state(
         )
     for item in todolist.items:
         if item.item_id == update.item_id:
-            if update.checked != None:
+            if update.checked is not None:
                 item.checked = update.checked
                 # await todolist.save()
-            if update.label != None:
+            if update.label is not None:
                 item.label = update.label
                 # await todolist.save()
-            if update.priority != None:
+            if update.priority is not None:
                 item.priority = update.priority
                 # await todolist.save()
-            if update.description != None:
+            if update.description is not None:
                 item.description = update.description
             if update.tags is not None:
                 item.tags = update.tags
