@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status, HTTPException
 from app.schemas.workspace import WorkspaceResponse, WorkspaceCreate, WorkspaceUpdate
 from app.auth import currentUser
-from app.models import Workspace, User, List
+from app.models import Item, Workspace, List
 from beanie import PydanticObjectId
 from datetime import datetime, UTC
 
@@ -32,6 +32,7 @@ async def create_workspace(current_user: currentUser, workspace_data: WorkspaceC
     existing_workspace = await Workspace.find_one(
         Workspace.name == workspace_data.name,
         Workspace.user_id == current_user.id,
+        fetch_links=True,
     )
     if existing_workspace:
         raise HTTPException(
@@ -77,22 +78,16 @@ async def update_workspace_partial(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="workspace not found"
         )
-    if update.user_id != None:
-        user = await User.find_one(User.id == update.user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="updated user not found"
-            )
-        await workspace.update({"$set": {"user_id": user.id}})
-    if update.name != None:
+    if update.name is not None:
         existing_workspace = await Workspace.find_one(Workspace.name == update.name)
         if existing_workspace:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="workspace already present",
             )
-        await workspace.update({"$set": {"name": update.name}})
-    await workspace.update({"$set": {"updated_at": datetime.now(UTC)}})
+    workspace_data = update.model_dump(exclude_none=True)
+    workspace_data["updated_at"] = datetime.now(UTC)
+    await workspace.update({"$set": workspace_data})
     return await Workspace.get(workspace_id)
 
 
@@ -109,7 +104,6 @@ async def delete_workspace(workspace_id: PydanticObjectId, current_user: current
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="workspace not found"
         )
-    workspace_list = await List.find(List.workspace_id == workspace.id).to_list()
-    for ws in workspace_list:
-        await ws.delete()
+    await Item.find_all(Item.workspace_id == workspace.id).delete()
+    await List.find_all(List.workspace_id == workspace.id).delete()
     await workspace.delete()

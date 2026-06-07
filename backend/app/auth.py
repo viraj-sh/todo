@@ -8,8 +8,8 @@ import hashlib
 
 from fastapi.security import OAuth2PasswordBearer
 from app.config import settings
-from app.models import User
-from app.schemas.user import UserPrivateResponse
+from app.models import User, ResetToken
+from app.schemas.user import UserSecureResponse
 from app.models import ApiKey
 
 password_hash = PasswordHash.recommended()
@@ -75,7 +75,9 @@ def verify_token(token: str, type: str = "access") -> str | None:
         return payload.get("sub")
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
     if token.startswith("sk_"):
         api_key = await ApiKey.find_one(ApiKey.key_hash == hash_api_key(token))
         if not api_key:
@@ -83,7 +85,11 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="invalid or expired api key",
             )
-        if api_key.expires_at is not None and api_key.expires_at < datetime.now(UTC):
+
+        token_exp = api_key.expires_at
+        if token_exp is not None and token_exp.tzinfo is None:
+            token_exp = token_exp.replace(tzinfo=UTC)
+        if token_exp is not None and token_exp < datetime.now(UTC):
             await api_key.delete()
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -97,6 +103,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
                 detail="invalid or expired api key",
             )
         await api_key.update({"$set": {"last_used_at": datetime.now(UTC)}})
+        await ResetToken.find_all(ResetToken.user_id == user.id).delete()
         return user
 
     user_id = verify_token(token)
@@ -106,12 +113,13 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
             detail="invalid or expired token",
         )
 
-    user = await User.get(user_id)
+    user = await User.get(user_id, fetch_links=True)
     if not user or user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
         )
+    await ResetToken.find_all(ResetToken.user_id == user.id).delete()
     return user
 
 
-currentUser = Annotated[UserPrivateResponse, Depends(get_current_user)]
+currentUser = Annotated[UserSecureResponse, Depends(get_current_user)]
