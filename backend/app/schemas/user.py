@@ -3,6 +3,8 @@ from beanie import PydanticObjectId
 from pydantic import EmailStr
 from datetime import datetime
 
+from app.schemas.workspace import WorkspaceSimpleResponse
+
 
 class ApiKeyBase(BaseModel):
     id: PydanticObjectId
@@ -18,6 +20,10 @@ class ApiKeyFullResponse(ApiKeyBase):
 
 
 class ApiKeyResponse(ApiKeyBase):
+    pass
+
+
+class ApiKeySimpleResponse(ApiKeyBase):
     pass
 
 
@@ -45,6 +51,16 @@ class UserPrivateResponse(BaseModel):
     id: PydanticObjectId
     username: str
     email: EmailStr
+    workspaces: list[WorkspaceSimpleResponse] = []
+    api_keys: list[ApiKeySimpleResponse] = []
+    created_at: datetime
+    updated_at: datetime
+
+
+class UserSecureResponse(BaseModel):
+    id: PydanticObjectId
+    username: str
+    email: EmailStr
     password_hash: str
     created_at: datetime
     updated_at: datetime
@@ -65,3 +81,7 @@ class UserUpdate(BaseModel):
 class ChangePassword(BaseModel):
     current_password: str
     new_password: str = Field(min_length=6)
+
+
+class UserTag(BaseModel):
+    name: str

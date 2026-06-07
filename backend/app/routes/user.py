@@ -9,9 +9,10 @@ from app.schemas.user import (
     ApiKeyResponse,
     ApiKeyFullResponse,
     ApiKeyCreate,
+    UserTag,
 )
 from app.config import settings
-from app.models import ApiKey, User, List
+from app.models import ApiKey, ResetToken, Tag, User, List, Workspace, Item
 from app.auth import (
     hash_password,
     currentUser,
@@ -58,33 +59,34 @@ async def delete_user(current_user: currentUser):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
         )
+    await Item.find_all(Item.user_id == user.id).delete()
+    await List.find_all(List.user_id == user.id).delete()
+    await Workspace.find_all(Workspace.user_id == user.id).delete()
+    await ApiKey.find_all(ApiKey.user_id == user.id).delete()
+    await ResetToken.find_all(ResetToken.user_id == user.id).delete()
     await user.delete()
 
 
 @router.patch("", response_model=UserResponse, status_code=status.HTTP_202_ACCEPTED)
 async def update_user_partial(user_data: UserUpdate, current_user: currentUser):
-    existing_user = await User.find_one(User.username == user_data.username)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="username already registered",
-        )
-    registered_email = await User.find_one(User.email == user_data.email)
-    if registered_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="email already registered"
-        )
-    user = await User.get(current_user.id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
-        )
     if user_data.username is not None:
-        await user.update({"$set": {"username": user_data.username}})
+        existing_user = await User.find_one(User.username == user_data.username)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="username already registered",
+            )
     if user_data.email is not None:
-        await user.update({"$set": {"email": user_data.email}})
-    await user.update({"$set": {"updated_at": datetime.now(UTC)}})
-    return await user.get(user.id)
+        registered_email = await User.find_one(User.email == user_data.email)
+        if registered_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="email already registered",
+            )
+    update_data = user_data.model_dump(exclude_none=True)
+    update_data["updated_at"] = datetime.now(UTC)
+    await current_user.update({"$set": update_data})
+    return await User.get(current_user.id)
 
 
 @router.patch("/change-password", status_code=status.HTTP_200_OK)
@@ -99,15 +101,24 @@ async def change_password(passwordData: ChangePassword, current_user: currentUse
             status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
         )
     await user.update(
-        {"$set": {"password_hash": hash_password(passwordData.new_password)}}
+        {
+            "$set": {
+                "password_hash": hash_password(passwordData.new_password),
+                "updated_at": datetime.now(UTC),
+            }
+        }
     )
-    await user.update({"$set": {"updated_at": datetime.now(UTC)}})
     return {"message": "password change sucessfull"}
 
 
-@router.get("/tags", status_code=status.HTTP_200_OK, operation_id="list_tags")
+@router.get(
+    "/tags",
+    response_model=list[UserTag],
+    status_code=status.HTTP_200_OK,
+    operation_id="list_tags",
+)
 async def fetch_user_tags(current_user: currentUser):
-    return await List.get_all_user_tags(current_user.id)
+    return await Tag.find(Tag.user_id == current_user.id).to_list()
 
 
 @router.get(
@@ -148,17 +159,18 @@ async def create_api_key(input_data: ApiKeyCreate, current_user: currentUser):
         expires_at=expire,
     )
     await new_api_key.create()
-    if new_api_key.id is None:
+    if not new_api_key.id:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="failed to create api key",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="failed to insert the api key",
         )
+
     return ApiKeyFullResponse(
         id=new_api_key.id,
-        name=input_data.name,
-        prefix=api_key[:8],
-        created_at=datetime.now(UTC),
-        expires_at=expire,
+        name=new_api_key.name,
+        prefix=new_api_key.prefix,
+        expires_at=new_api_key.expires_at,
+        created_at=new_api_key.created_at,
         key=api_key,
     )
 

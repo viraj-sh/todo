@@ -10,14 +10,12 @@ class ListBase(BaseModel):
 
 class ListResponse(ListBase):
     id: PydanticObjectId
-    items: list[ItemResponse]
     created_at: datetime
     updated_at: datetime
 
 
 class ListDetailedResponse(ListBase):
     id: PydanticObjectId
-    items: list[ItemResponse]
     created_at: datetime
     updated_at: datetime
 
@@ -34,42 +32,6 @@ class ListUpdate(BaseModel):
 class ListSummary(BaseModel):
     id: PydanticObjectId
     name: str
-    item_count: int = Field()
+    item_count: int
     created_at: datetime
     updated_at: datetime
-
-
-class ItemBase(BaseModel):
-    item_id: str
-    label: str
-    checked: bool = Field(default=False)
-    priority: int | None = Field(default=None)
-    tags: list[str] = []
-    description: str | None = Field(default=None)
-    deadline: datetime | None = Field(default=None)
-    created_at: datetime
-    updated_at: datetime
-
-
-class ItemCreate(BaseModel):
-    label: str = Field(min_length=1, max_length=250)
-    checked: bool = Field(default=False)
-    priority: int | None = Field(default=None, ge=1, le=3)
-    tags: list[str] = []
-    description: str | None = Field(default=None, min_length=0, max_length=10000)
-    deadline: datetime | None = Field(default=None)
-
-
-class ItemUpdatePartial(BaseModel):
-    item_id: str
-    label: str | None = Field(default=None, min_length=1, max_length=250)
-    checked: bool | None = Field(default=None)
-    priority: int | None = Field(default=None, ge=1, le=3)
-    tags: list[str] = []
-    description: str | None = Field(default=None, min_length=0, max_length=10000)
-    deadline: datetime | None = Field(default=None)
-    updated_at: datetime = datetime.now(UTC)
-
-
-class ItemResponse(ItemBase):
-    pass

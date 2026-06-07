@@ -14,3 +14,13 @@ dependencies = [
     "pyjwt>=2.13.0",
     "pymongo<4.10",
 ]
+
+[dependency-groups]
+dev = [
+    "faker>=40.21.0",
+    "pytest>=9.0.3",
+    "pytest-html>=4.2.0",
+    "pytest-xdist>=3.8.0",
+    "python-dotenv>=1.2.2",
+    "requests>=2.34.2",
+]

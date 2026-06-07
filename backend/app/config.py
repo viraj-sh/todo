@@ -5,6 +5,9 @@ from pydantic import SecretStr
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf8")
     # API
+    api_title: str = "Todo API"
+    api_version: str = "1.0.0"
+    api_docs_url: str = "https://github.com/viraj-sh/todo"
     base_url: str
     cors_origin: str = "https://uitodo.netlify.app"
     frontend_url: str = "https://uitodo.netlify.app"
@@ -32,4 +35,4 @@ class Settings(BaseSettings):
     use_tls: bool = True
 
 
-settings = Settings()  # type: ignore[call-arg]
+settings = Settings()  # type: ignore

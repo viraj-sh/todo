@@ -13,10 +13,16 @@ class WorkspaceCreate(WorkspaceBase):
 
 class WorkspaceUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
-    user_id: PydanticObjectId | None = None
 
 
 class WorkspaceResponse(WorkspaceBase):
+    id: PydanticObjectId
+    user_id: PydanticObjectId
+    created_at: datetime
+    updated_at: datetime
+
+
+class WorkspaceSimpleResponse(WorkspaceBase):
     id: PydanticObjectId
     user_id: PydanticObjectId
     created_at: datetime
