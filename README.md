@@ -6,17 +6,16 @@ A simple self-hosted application for managing tasks through workspaces, lists, a
 
 ## Current Features
 
-- User authentication and authorization.
-- Account management.
-- Workspace-based organization.
-- List management.
-- Item management with priorities and labels.
-- Completion tracking.
-- Light and dark mode theme.
-- Bulk item actions.
-- MCP server support.
-- Refresh token with JWT authentication.
-- Password reset workflow which sends email via external service resend.
+- JWT authentication with access and refresh tokens
+- Password reset via email
+- User registration, profile updates, and account deletion
+- API key management with optional expiry
+- Workspace-based organization
+- List management within workspaces
+- Item management with label, description, priority, deadline, tags, subtasks, and completion tracking
+- Bulk item actions
+- Light and dark mode
+- MCP server support
 
 ## Planned Features
 
