@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     cors_origin: str = "https://uitodo.netlify.app"
     frontend_url: str = "https://uitodo.netlify.app"
 
+    # App
+    username_base_len: int = 12
+    username_suffix_len: int = 6
+
     # Database
     mongo_url: SecretStr
     mongo_db: str = "todolist"
@@ -22,6 +26,19 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
     algorithm: str = "HS256"
     secret_key: SecretStr
+
+    # Google
+    google_client_id: str
+    google_client_secret: str
+    google_redirect_uri: str
+
+    # Github
+    github_client_id: str
+    github_client_secret: str
+    github_redirect_uri: str
+
+    # OAuth
+    frontend_url: str
 
     # ApiKey
     max_api_key_count: int = 5

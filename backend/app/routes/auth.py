@@ -1,5 +1,5 @@
-from fastapi import APIRouter, status, Depends, HTTPException, BackgroundTasks
-from typing import Annotated
+from fastapi import APIRouter, Request, status, Depends, HTTPException, BackgroundTasks
+from typing import Annotated, Literal
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, UTC, timedelta
 
@@ -14,9 +14,12 @@ from app.auth import (
     create_token,
     generate_secure_token,
     hash_reset_token,
+    get_oauth_user,
 )
 from app.config import settings
 from app.email_utils import send_forgot_password_email, send_password_reset_confirmation
+from app.services.oauth import get_oauth_client
+from app.utils import REDIRECT_URLS
 
 router = APIRouter()
 
@@ -79,12 +82,12 @@ async def forgot_password(user_input: ForgotPassword, background_task: Backgroun
         )
         await new_reset_token.create()
 
-        # background_task.add_task(
-        #     send_forgot_password_email,
-        #     to_email=user.email,
-        #     username=user.username,
-        #     reset_token=reset_token,
-        # )
+        background_task.add_task(
+            send_forgot_password_email,
+            to_email=user.email,
+            username=user.username,
+            reset_token=reset_token,
+        )
 
     return {
         "message": "If an account with that email exists, a password reset link has been sent."
@@ -134,14 +137,63 @@ async def reset_password(user_data: ResetPassword, background_task: BackgroundTa
         }
     )
     await ResetToken.find_all(ResetToken.user_id == user.id).delete()
-    # background_task.add_task(
-    #     send_password_reset_confirmation,
-    #     to_email=user.email,
-    #     username=user.username,
-    # )
+    background_task.add_task(
+        send_password_reset_confirmation,
+        to_email=user.email,
+        username=user.username,
+    )
     return {
         "message": "Your password has been successfully updated. Please log in with your new credentials."
     }
+
+
+@router.get("/{provider}")
+async def external_oauth(provider: Literal["google", "github"], request: Request):
+    try:
+        client = get_oauth_client(provider)
+        return await client.authorize_redirect(request, REDIRECT_URLS[provider])
+    except (ValueError, KeyError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"unsupported provider: {provider}",
+        )
+
+
+@router.get("/{provider}/callback")
+async def oauth_callback(provider: Literal["google", "github"], request: Request):
+    try:
+        client = get_oauth_client(provider)
+        token = await client.authorize_access_token(request)
+
+        if provider == "github":
+            resp = await client.get("user", token=token)
+            profile = resp.json()
+            if not profile.get("email"):
+                email_resp = await client.get("user/emails", token=token)
+                emails = email_resp.json()
+                primary = next(
+                    (e["email"] for e in emails if e["primary"] and e["verified"]), None
+                )
+                profile["email"] = primary
+            token = profile
+        user = await get_oauth_user(token, provider)
+        expire_timedelta = timedelta(minutes=settings.access_token_expire_minutes)
+        access_token = create_token({"sub": str(user.id)}, "access", expire_timedelta)
+        refresh_token = create_token({"sub": str(user.id)}, "refresh")
+
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="Bearer",
+        )
+
+    except HTTPException:
+        raise
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"unsupported provider: {provider} - {exc}",
+        )
 
 
 @router.get(

@@ -4,7 +4,7 @@
 
 test_ui.html
 report.html
-test_docs.md
+test_*.md
 pytest.ini
 tests
 .vscode

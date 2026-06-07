@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from fastapi import Depends, HTTPException, status
 from pwdlib import PasswordHash
 from datetime import timedelta, datetime, UTC
@@ -11,6 +11,7 @@ from app.config import settings
 from app.models import User, ResetToken
 from app.schemas.user import UserSecureResponse
 from app.models import ApiKey
+from app.utils import extract_profile, generate_username
 
 password_hash = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer("/api/auth/token")
@@ -73,6 +74,48 @@ def verify_token(token: str, type: str = "access") -> str | None:
         return None
     else:
         return payload.get("sub")
+
+
+async def get_oauth_user(token: dict, provider: Literal["github", "google"]) -> User:
+    user_data = extract_profile(token, provider)
+    if user_data is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="invalid login",
+        )
+
+    existing_user = await User.find_one(User.email == user_data.email)
+
+    if existing_user:
+        if (
+            existing_user.oauth_provider_id is None
+            and existing_user.oauth_provider is None
+        ):
+            await existing_user.update(
+                {
+                    "$set": {
+                        "oauth_provider_id": user_data.provider_id,
+                        "oauth_provider": provider,
+                        "updated_at": datetime.now(UTC),
+                    }
+                }
+            )
+            return existing_user
+        if existing_user.oauth_provider != provider:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"email already registered with {existing_user.oauth_provider}, please login with {existing_user.oauth_provider}",
+            )
+        return existing_user
+
+    new_user = User(
+        username=generate_username(user_data.name),
+        email=user_data.email,
+        oauth_provider=provider,
+        oauth_provider_id=user_data.provider_id,
+    )
+    await new_user.create()
+    return new_user
 
 
 async def get_current_user(

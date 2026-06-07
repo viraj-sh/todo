@@ -1,3 +1,5 @@
+from typing import Literal
+
 from beanie import Document, PydanticObjectId
 from pydantic import EmailStr
 from datetime import datetime, UTC
@@ -8,7 +10,9 @@ from app.schemas.list import ListSummary
 class User(Document):
     username: str
     email: EmailStr
-    password_hash: str
+    password_hash: str | None = None
+    oauth_provider: Literal["google", "github"] | None = None
+    oauth_provider_id: str | None = None
 
     created_at: datetime = datetime.now(UTC)
     updated_at: datetime = datetime.now(UTC)

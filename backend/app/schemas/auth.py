@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from pydantic import BaseModel, Field, EmailStr
 
 
@@ -20,3 +18,9 @@ class ForgotPassword(BaseModel):
 class ResetPassword(BaseModel):
     reset_token: str
     new_password: str = Field(min_length=6)
+
+
+class OAuthProfile(BaseModel):
+    name: str
+    email: EmailStr
+    provider_id: str

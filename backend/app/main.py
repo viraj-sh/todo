@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi_mcp import FastApiMCP
 from app.database import init_db, close_db
 from app.routes import system, list, user, auth, workspace, item
@@ -31,7 +32,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.add_middleware(
+    middleware_class=SessionMiddleware,
+    secret_key=settings.secret_key.get_secret_value(),
+)
 
 app.include_router(router=system.router, prefix="", tags=["system"])
 app.include_router(router=auth.router, prefix="/api/auth", tags=["auth"])
