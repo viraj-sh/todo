@@ -5,6 +5,7 @@ from pydantic import EmailStr
 from datetime import datetime, UTC
 from pydantic import Field
 from app.schemas.list import ListSummary
+from app.schemas.workspace import ExportWorkspace, ExportItem, ExportList
 
 
 class User(Document):
@@ -56,6 +57,83 @@ class Workspace(Document):
     class Settings:
         name = "workspaces"
         indexes = ["name"]
+
+    @staticmethod
+    async def get_export_data(workspace_id: PydanticObjectId):
+        pipeline = [
+            {"$match": {"_id": workspace_id}},
+            {
+                "$lookup": {
+                    "from": "tags",
+                    "localField": "_id",
+                    "foreignField": "workspace_id",
+                    "as": "tags",
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "lists",
+                    "localField": "_id",
+                    "foreignField": "workspace_id",
+                    "as": "lists",
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "items",
+                    "localField": "_id",
+                    "foreignField": "workspace_id",
+                    "as": "all_items",
+                }
+            },
+        ]
+
+        results = await Workspace.aggregate(pipeline).to_list()
+        if not results:
+            return None
+
+        r = results[0]
+
+        tag_map = {tag["_id"]: tag["name"] for tag in r.get("tags", [])}
+        tag_names = list(tag_map.values())
+
+        all_items = r.get("all_items", [])
+        parent_items = [i for i in all_items if i.get("parent_id") is None]
+        subtask_map: dict = {}
+        for item in all_items:
+            if item.get("parent_id") is not None:
+                subtask_map.setdefault(item["parent_id"], []).append(item)
+
+        def build_export_item(item: dict) -> ExportItem:
+            return ExportItem(
+                label=item["label"],
+                description=item.get("description"),
+                priority=item.get("priority"),
+                deadline=item.get("deadline"),
+                checked=item.get("checked", False),
+                tags=[
+                    tag_map[tid] for tid in item.get("tag_ids", []) if tid in tag_map
+                ],
+                subtasks=[
+                    build_export_item(sub) for sub in subtask_map.get(item["_id"], [])
+                ],
+            )
+
+        export_lists = []
+        for lst in r.get("lists", []):
+            list_parent_items = [i for i in parent_items if i["list_id"] == lst["_id"]]
+            export_lists.append(
+                ExportList(
+                    name=lst["name"],
+                    items=[build_export_item(i) for i in list_parent_items],
+                )
+            )
+
+        return ExportWorkspace(
+            name=r["name"],
+            tags=tag_names,
+            lists=export_lists,
+        )
 
 
 class List(Document):

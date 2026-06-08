@@ -29,6 +29,11 @@ async def login_for_access_token(
     login_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ):
     user = await User.find_one(User.username == login_data.username)
+    if user.password_hash is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="invalid username or password",
+        )
     if not user or not verify_password(login_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -82,12 +87,12 @@ async def forgot_password(user_input: ForgotPassword, background_task: Backgroun
         )
         await new_reset_token.create()
 
-        background_task.add_task(
-            send_forgot_password_email,
-            to_email=user.email,
-            username=user.username,
-            reset_token=reset_token,
-        )
+        # background_task.add_task(
+        #     send_forgot_password_email,
+        #     to_email=user.email,
+        #     username=user.username,
+        #     reset_token=reset_token,
+        # )
 
     return {
         "message": "If an account with that email exists, a password reset link has been sent."
@@ -137,14 +142,24 @@ async def reset_password(user_data: ResetPassword, background_task: BackgroundTa
         }
     )
     await ResetToken.find_all(ResetToken.user_id == user.id).delete()
-    background_task.add_task(
-        send_password_reset_confirmation,
-        to_email=user.email,
-        username=user.username,
-    )
+    # background_task.add_task(
+    #     send_password_reset_confirmation,
+    #     to_email=user.email,
+    #     username=user.username,
+    # )
     return {
         "message": "Your password has been successfully updated. Please log in with your new credentials."
     }
+
+
+@router.get(
+    "/me",
+    response_model=UserPrivateResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="get_current_user",
+)
+async def authenticated_user(current_user: currentUser):
+    return current_user
 
 
 @router.get("/{provider}")
@@ -194,13 +209,3 @@ async def oauth_callback(provider: Literal["google", "github"], request: Request
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"unsupported provider: {provider} - {exc}",
         )
-
-
-@router.get(
-    "/me",
-    response_model=UserPrivateResponse,
-    status_code=status.HTTP_200_OK,
-    operation_id="get_current_user",
-)
-async def authenticated_user(current_user: currentUser):
-    return current_user

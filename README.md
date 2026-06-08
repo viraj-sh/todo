@@ -16,6 +16,7 @@ A simple self-hosted application for managing tasks through workspaces, lists, a
 - Bulk item actions
 - Light and dark mode
 - MCP server support
+- OAuth authentication with Google and GitHub
 
 ## Planned Features
 
@@ -23,6 +24,10 @@ A simple self-hosted application for managing tasks through workspaces, lists, a
 - AI-assisted task creation.
 - AI chat integration.
 - LLM integrations.
+- Import and export workspace data
+- Sync time-based items to calendar services (.ics support)
+- Email verification 
+- Backup to cloud services (Google Drive, Dropbox, etc.)
 - Additional productivity and organization features.
 
 ## Current State: Development

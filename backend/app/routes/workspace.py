@@ -1,5 +1,12 @@
 from fastapi import APIRouter, status, HTTPException
-from app.schemas.workspace import WorkspaceResponse, WorkspaceCreate, WorkspaceUpdate
+from fastapi.responses import StreamingResponse
+import json
+from app.schemas.workspace import (
+    WorkspaceResponse,
+    WorkspaceCreate,
+    WorkspaceUpdate,
+    ExportFile,
+)
 from app.auth import currentUser
 from app.models import Item, Workspace, List
 from beanie import PydanticObjectId
@@ -107,3 +114,37 @@ async def delete_workspace(workspace_id: PydanticObjectId, current_user: current
     await Item.find_all(Item.workspace_id == workspace.id).delete()
     await List.find_all(List.workspace_id == workspace.id).delete()
     await workspace.delete()
+
+
+@router.get(
+    "/{workspace_id}/export",
+    response_model=ExportFile,
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False,
+)
+async def export_workspace(workspace_id: PydanticObjectId):
+    workspace = await Workspace.get(workspace_id)
+    if not workspace:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="workspace not found"
+        )
+    workspace_data = await Workspace.get_export_data(workspace_id)
+    if not workspace_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="cannot export this workspace"
+        )
+    export_file = ExportFile(
+        version="1.0",
+        exported_at=datetime.now(UTC),
+        workspace=workspace_data,
+    )
+
+    json_bytes = export_file.model_dump_json(indent=2).encode("utf-8")
+
+    return StreamingResponse(
+        iter([json_bytes]),
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{workspace_data.name}.json"'
+        },
+    )
