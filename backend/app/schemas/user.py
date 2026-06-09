@@ -61,6 +61,7 @@ class UserSecureResponse(BaseModel):
     id: PydanticObjectId
     username: str
     email: EmailStr
+    is_verified: bool
     password_hash: str
     created_at: datetime
     updated_at: datetime
@@ -69,6 +70,7 @@ class UserSecureResponse(BaseModel):
 class UserPublicResponse(BaseModel):
     id: PydanticObjectId
     username: str
+    is_verified: bool
     created_at: datetime
     updated_at: datetime
 
@@ -85,3 +87,7 @@ class ChangePassword(BaseModel):
 
 class UserTag(BaseModel):
     name: str
+
+
+class VerifyUser(BaseModel):
+    verify_token: str

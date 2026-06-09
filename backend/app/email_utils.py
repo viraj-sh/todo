@@ -79,3 +79,56 @@ Automated email. Please do not reply.
     await send_email(
         to_email, "Password reset successful - Todo", text_content, html_content
     )
+
+
+async def send_email_verification(to_email: str, username: str, token: str):
+    verification_url = f"{settings.frontend_url}/api/user/verify?token={token}"
+    template = templates.env.get_template("email_verification.html")
+    html_content = template.render(username=username, verification_url=verification_url)
+    text_content = f"""Email Verification
+
+Hi {username},
+
+Welcome!
+
+Please verify your email address by clicking the link below:
+
+Verify your email: {verification_url}
+
+This verification link will expire in 24 hours.
+
+If you did not create an account, you can safely ignore this email.
+
+If the link does not work, copy and paste this URL into your browser:
+{verification_url}
+
+--
+Automated email. Please do not reply.
+"""
+    await send_email(
+        to_email, "Please verify your email address - Todo", text_content, html_content
+    )
+
+
+async def send_email_verification_confirmation(to_email: str, username: str):
+    template = templates.env.get_template("email_verification_confirmation.html")
+    html_content = template.render(username=username)
+    text_content = f"""Email Verified Successfully
+
+Hi {username},
+
+Your email address has been successfully verified.
+
+You can now access all features of your account.
+
+If you did not verify this email, please contact support immediately.
+
+--
+Automated email. Please do not reply.
+"""
+    await send_email(
+        to_email,
+        subject="Email verified successfully - Todo",
+        text_content=text_content,
+        html_content=html_content,
+    )

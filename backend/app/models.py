@@ -14,6 +14,7 @@ class User(Document):
     password_hash: str | None = None
     oauth_provider: Literal["google", "github"] | None = None
     oauth_provider_id: str | None = None
+    is_verified: bool = False
 
     created_at: datetime = datetime.now(UTC)
     updated_at: datetime = datetime.now(UTC)

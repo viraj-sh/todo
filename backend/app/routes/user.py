@@ -1,5 +1,6 @@
 from beanie import PydanticObjectId
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, BackgroundTasks, status, HTTPException
+from datetime import datetime, UTC, timedelta
 from app.schemas.user import (
     UserCreate,
     UserResponse,
@@ -10,6 +11,7 @@ from app.schemas.user import (
     ApiKeyFullResponse,
     ApiKeyCreate,
     UserTag,
+    VerifyUser,
 )
 from app.config import settings
 from app.models import ApiKey, ResetToken, Tag, User, List, Workspace, Item
@@ -19,8 +21,13 @@ from app.auth import (
     verify_password,
     generate_secure_token,
     hash_api_key,
+    decode_url_safe_token,
+    create_url_safe_token,
 )
-from datetime import datetime, UTC, timedelta
+from app.email_utils import (
+    send_email_verification,
+    send_email_verification_confirmation,
+)
 
 router = APIRouter()
 
@@ -85,8 +92,60 @@ async def update_user_partial(user_data: UserUpdate, current_user: currentUser):
             )
     update_data = user_data.model_dump(exclude_none=True)
     update_data["updated_at"] = datetime.now(UTC)
-    await current_user.update({"$set": update_data})
+    await current_user.update({"$set": update_data})  # type: ignore
     return await User.get(current_user.id)
+
+
+@router.post("/send-verification", status_code=status.HTTP_200_OK)
+async def send_verify_email(
+    current_user: currentUser, background_task: BackgroundTasks
+):
+    if current_user.email is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="please set the email",
+        )
+    elif current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="user already verified"
+        )
+    verify_token = create_url_safe_token({"sub": current_user.email})
+    background_task.add_task(
+        send_email_verification,
+        to_email=current_user.email,
+        username=current_user.username,
+        token=verify_token,
+    )
+    return {"message": "verification email sent"}
+
+
+@router.post("/verify", status_code=status.HTTP_200_OK)
+async def verify_user_email(user_data: VerifyUser, background_task: BackgroundTasks):
+    token_data = decode_url_safe_token(user_data.verify_token)
+    if not token_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid or expired token"
+        )
+    if not token_data.get("sub"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid or expired token"
+        )
+    user = await User.find_one(User.email == token_data.get("sub"))
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid or expire token"
+        )
+    if user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_200_OK, detail="email already verified"
+        )
+    await user.update({"$set": {"is_verified": True, "updated_at": datetime.now(UTC)}})
+    background_task.add_task(
+        send_email_verification_confirmation,
+        to_email=user.email,
+        username=user.username,
+    )
+    return {"message": "email verified sucessfully"}
 
 
 @router.patch("/change-password", status_code=status.HTTP_200_OK)

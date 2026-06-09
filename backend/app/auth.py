@@ -2,6 +2,7 @@ from typing import Annotated, Literal
 from fastapi import Depends, HTTPException, status
 from pwdlib import PasswordHash
 from datetime import timedelta, datetime, UTC
+from itsdangerous import URLSafeTimedSerializer
 import jwt
 import secrets
 import hashlib
@@ -15,6 +16,9 @@ from app.utils import extract_profile, generate_username
 
 password_hash = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer("/api/auth/token")
+serializer = URLSafeTimedSerializer(
+    secret_key=settings.secret_key.get_secret_value(), salt="email-confirmation"
+)
 
 
 def hash_password(password: str) -> str:
@@ -37,6 +41,25 @@ def hash_reset_token(token: str) -> str:
 
 def hash_api_key(key: str) -> str:
     return hashlib.sha256(key.encode()).hexdigest()
+
+
+def create_url_safe_token(data: dict):
+    return serializer.dumps(
+        data,
+    )
+
+
+def decode_url_safe_token(token: str):
+    try:
+        token_data = serializer.loads(
+            token,
+            max_age=int(
+                timedelta(hours=settings.verify_token_expire_hours).total_seconds()
+            ),
+        )
+        return token_data
+    except Exception:
+        None
 
 
 def create_token(data: dict, type: str, expires_delta: timedelta | None = None) -> str:
@@ -96,6 +119,7 @@ async def get_oauth_user(token: dict, provider: Literal["github", "google"]) -> 
                     "$set": {
                         "oauth_provider_id": user_data.provider_id,
                         "oauth_provider": provider,
+                        "is_verified": True,
                         "updated_at": datetime.now(UTC),
                     }
                 }
@@ -113,6 +137,7 @@ async def get_oauth_user(token: dict, provider: Literal["github", "google"]) -> 
         email=user_data.email,
         oauth_provider=provider,
         oauth_provider_id=user_data.provider_id,
+        is_verified=True,
     )
     await new_user.create()
     return new_user

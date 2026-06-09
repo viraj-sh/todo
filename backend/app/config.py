@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     reset_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 7
+    verify_token_expire_hours: int = 24
     algorithm: str = "HS256"
     secret_key: SecretStr
 

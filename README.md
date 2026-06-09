@@ -17,6 +17,7 @@ A simple self-hosted application for managing tasks through workspaces, lists, a
 - Light and dark mode
 - MCP server support
 - OAuth authentication with Google and GitHub
+- Email verification 
 
 ## Planned Features
 
@@ -26,10 +27,9 @@ A simple self-hosted application for managing tasks through workspaces, lists, a
 - LLM integrations.
 - Import and export workspace data
 - Sync time-based items to calendar services (.ics support)
-- Email verification 
 - Backup to cloud services (Google Drive, Dropbox, etc.)
 - Additional productivity and organization features.
 
 ## Current State: Development
 
-## License: GNU General Public License (GPL)
+> License: [GNU General Public License (GPL)](./LICENSE)
