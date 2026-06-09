@@ -10,6 +10,23 @@ from app.schemas.item import ItemResponse, ItemCreate, ItemUpdatePartial
 router = APIRouter()
 
 
+@router.get(
+    "/workspaces/{workspace_id}/lists/{list_id}/items",
+    response_model=list[ItemResponse],
+    status_code=status.HTTP_200_OK,
+    operation_id="fetch_list_items",
+)
+async def fetch_list_items(
+    workspace_id: PydanticObjectId, list_id: PydanticObjectId, current_user: currentUser
+):
+    items = await Item.find(
+        Item.list_id == list_id,
+        Item.workspace_id == workspace_id,
+        Item.user_id == current_user.id,
+    ).to_list()
+    return items
+
+
 @router.post(
     "/workspaces/{workspace_id}/lists/{list_id}/items",
     response_model=ItemResponse,
