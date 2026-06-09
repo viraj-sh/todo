@@ -46,7 +46,10 @@ async def create_lists(
             status_code=status.HTTP_404_NOT_FOUND, detail="workspace not found"
         )
     new_list = List(
-        name=list_data.name, user_id=current_user.id, workspace_id=workspace_id
+        name=list_data.name,
+        user_id=current_user.id,
+        workspace_id=workspace_id,
+        color=list_data.color,
     )
     await new_list.create()
     return new_list
@@ -96,7 +99,13 @@ async def update_lists(
         )
     if list_data.name is not None:
         await list.update(
-            {"$set": {"name": list_data.name, "updated_at": datetime.now(UTC)}}
+            {
+                "$set": {
+                    "name": list_data.name,
+                    "color": list_data.color,
+                    "updated_at": datetime.now(UTC),
+                }
+            }
         )
     return await List.find_one(
         List.id == list_id,

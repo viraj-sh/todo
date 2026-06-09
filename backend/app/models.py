@@ -4,7 +4,7 @@ from beanie import Document, PydanticObjectId
 from pydantic import EmailStr
 from datetime import datetime, UTC
 from pydantic import Field
-from app.schemas.list import ListSummary
+from app.schemas.list import ListSummary, ListColor
 from app.schemas.workspace import ExportWorkspace, ExportItem, ExportList
 
 
@@ -140,6 +140,7 @@ class List(Document):
     name: str
     user_id: PydanticObjectId
     workspace_id: PydanticObjectId
+    color: str = ListColor.BLUE
     created_at: datetime = datetime.now(UTC)
     updated_at: datetime = datetime.now(UTC)
 
