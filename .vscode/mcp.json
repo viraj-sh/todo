@@ -1,0 +1,29 @@
+{
+  "servers": {
+    "todo-latest": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "{{url}}",
+        "--header",
+        "Authorization: Bearer {{api-key}}"
+      ],
+      "type": "stdio"
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "url",
+      "description": "Todo BASE URL",
+      "password": false,
+      "default": "http://localhost:8888/mcp"
+    },
+    {
+      "type": "promptString",
+      "id": "api-key",
+      "description": "Enter your todo API Key",
+      "password": true
+    }
+  ]
+}
