@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi_mcp import FastApiMCP
+from app.exception_handler import validation_exception_handler
 from app.database import init_db, close_db
 from app.routes import system, list, user, auth, workspace, item
 from app.config import settings
@@ -36,7 +38,7 @@ app.add_middleware(
     middleware_class=SessionMiddleware,
     secret_key=settings.secret_key.get_secret_value(),
 )
-
+app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore
 app.include_router(router=system.router, prefix="", tags=["system"])
 app.include_router(router=auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(router=user.router, prefix="/api/user", tags=["user"])
