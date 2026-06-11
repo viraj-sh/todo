@@ -30,6 +30,6 @@ A simple self-hosted application for managing tasks through workspaces, lists, a
 - Backup to cloud services (Google Drive, Dropbox, etc.)
 - Additional productivity and organization features.
 
-## Current State: Development
+## Current State: Stable
 
 > License: [GNU General Public License (GPL)](./LICENSE)

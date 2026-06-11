@@ -9,3 +9,4 @@ pytest.ini
 tests
 .vscode
 test_notes.txt
+.vercel
